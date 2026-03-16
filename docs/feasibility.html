@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LandLens — Deal Feasibility Calculator</title>
+  <meta name="description" content="Calculate your Hyderabad land deal margin in 30 seconds. Real-time pricing across 50 micromarkets." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --surface2: #1a1a26;
+      --border: #1e1e2e;
+      --accent: #f59e0b;
+      --green: #10b981;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(10,10,15,0.97); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .nav-logo { font-size: 1.2rem; font-weight: 700; color: var(--accent); letter-spacing: -0.02em; text-decoration: none; }
+    .nav-logo span { color: var(--text); }
+    .nav-back { color: var(--muted); font-size: 0.875rem; text-decoration: none; }
+    .nav-back:hover { color: var(--text); }
+
+    /* PAGE LAYOUT */
+    .page { max-width: 960px; margin: 0 auto; padding: 40px 24px 80px; }
+    .page-header { margin-bottom: 36px; }
+    .page-title { font-size: 2rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 8px; }
+    .page-title em { color: var(--accent); font-style: normal; }
+    .page-sub { color: var(--muted); font-size: 1rem; }
+
+    /* MAIN GRID */
+    .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+    @media (max-width: 700px) { .main-grid { grid-template-columns: 1fr; } }
+
+    /* CARD */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; }
+    .card-title { font-size: 0.8rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 20px; }
+
+    /* FORM */
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 0.82rem; color: var(--muted); margin-bottom: 5px; font-weight: 500; }
+    select, input[type="number"] {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text); padding: 10px 12px; border-radius: 7px; font-size: 0.95rem;
+      font-family: var(--font); outline: none; transition: border-color 0.15s;
+      -moz-appearance: textfield;
+    }
+    select { cursor: pointer; }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+    select:focus, input[type="number"]:focus { border-color: var(--accent); }
+    .input-hint { font-size: 0.75rem; color: var(--muted); margin-top: 3px; opacity: 0.7; }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .btn-calc {
+      width: 100%; margin-top: 8px;
+      background: var(--accent); color: #000;
+      border: none; padding: 14px; border-radius: 8px;
+      font-size: 1rem; font-weight: 700; cursor: pointer;
+      font-family: var(--font); transition: opacity 0.15s;
+    }
+    .btn-calc:hover { opacity: 0.88; }
+
+    /* RESULTS */
+    .results-placeholder {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 340px; color: var(--muted); text-align: center; gap: 8px;
+    }
+    .placeholder-icon { font-size: 2.5rem; opacity: 0.3; }
+    .placeholder-text { font-size: 0.9rem; opacity: 0.6; }
+
+    /* VERDICT BANNER */
+    .verdict-banner {
+      border-radius: 10px; padding: 18px 20px; margin-bottom: 20px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .verdict-banner.go { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3); }
+    .verdict-banner.thin { background: rgba(245,158,11,0.10); border: 1px solid rgba(245,158,11,0.3); }
+    .verdict-banner.nogo { background: rgba(239,68,68,0.10); border: 1px solid rgba(239,68,68,0.3); }
+    .verdict-icon { font-size: 1.8rem; }
+    .verdict-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.7; }
+    .verdict-text { font-size: 1.2rem; font-weight: 800; margin-top: 1px; }
+    .verdict-banner.go .verdict-text { color: var(--green); }
+    .verdict-banner.thin .verdict-text { color: var(--yellow); }
+    .verdict-banner.nogo .verdict-text { color: var(--red); }
+
+    /* METRICS GRID */
+    .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .metric-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
+    .metric-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .metric-value { font-size: 1.45rem; font-weight: 800; letter-spacing: -0.02em; }
+    .metric-value.positive { color: var(--green); }
+    .metric-value.neutral { color: var(--text); }
+    .metric-value.warn { color: var(--yellow); }
+    .metric-sub { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+    /* MARKET CONTEXT */
+    .context-box {
+      background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 8px; padding: 12px 16px; margin-bottom: 20px;
+      font-size: 0.85rem; line-height: 1.5;
+    }
+    .context-label { font-size: 0.72rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+
+    /* SENSITIVITY TABLE */
+    .sens-label { font-size: 0.72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+    .sens-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .sens-table th { text-align: left; font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 8px; border-bottom: 1px solid var(--border); font-weight: 600; }
+    .sens-table td { padding: 7px 8px; border-bottom: 1px solid rgba(30,30,46,0.5); }
+    .sens-table tr:last-child td { border-bottom: none; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; }
+    .badge-go { background: rgba(16,185,129,0.15); color: var(--green); }
+    .badge-thin { background: rgba(245,158,11,0.15); color: var(--yellow); }
+    .badge-nogo { background: rgba(239,68,68,0.12); color: var(--red); }
+    .row-active td { background: rgba(245,158,11,0.06); }
+
+    /* FOOTER NOTE */
+    .footer-note { margin-top: 32px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.8rem; color: var(--muted); line-height: 1.6; }
+    .footer-note a { color: var(--accent); text-decoration: none; }
+
+    /* WAITLIST CTA */
+    .waitlist-cta {
+      margin-top: 28px; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 24px; text-align: center;
+    }
+    .waitlist-cta h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; }
+    .waitlist-cta p { font-size: 0.875rem; color: var(--muted); margin-bottom: 16px; }
+    .waitlist-cta a {
+      display: inline-block; background: var(--accent); color: #000;
+      padding: 12px 28px; border-radius: 7px; font-weight: 700; text-decoration: none;
+      font-size: 0.95rem; transition: opacity 0.15s;
+    }
+    .waitlist-cta a:hover { opacity: 0.88; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-logo">Land<span>Lens</span></a>
+  <a href="index.html" class="nav-back">← Back to overview</a>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <h1 class="page-title">Deal <em>Feasibility</em> Calculator</h1>
+    <p class="page-sub">Enter your land parcel details. Get margin%, break-even, and sensitivity analysis against live Hyderabad market data — in seconds.</p>
+  </div>
+
+  <div class="main-grid">
+    <!-- INPUT PANEL -->
+    <div class="card">
+      <div class="card-title">Deal Parameters</div>
+
+      <div class="form-group">
+        <label>Micromarket / Locality</label>
+        <select id="locality">
+          <option value="">— Select locality —</option>
+        </select>
+        <div class="input-hint" id="market-price-hint"></div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Land Price (₹/sqyd)</label>
+          <input type="number" id="land_price" placeholder="e.g. 60000" min="1000" step="1000" />
+        </div>
+        <div class="form-group">
+          <label>Land Area (sqyds)</label>
+          <input type="number" id="land_area" placeholder="e.g. 2000" min="100" step="100" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>FSI / FAR</label>
+          <input type="number" id="fsi" value="3.0" min="1" max="6" step="0.25" />
+          <div class="input-hint">Typical Hyderabad: 3.0–4.0</div>
+        </div>
+        <div class="form-group">
+          <label>Construction Cost (₹/sqft)</label>
+          <input type="number" id="construction_cost" value="3200" min="1500" max="8000" step="100" />
+          <div class="input-hint">Mid-range: ₹2,800–₹3,800</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Target Exit Price (₹/sqft) <span style="color:var(--muted);font-weight:400;font-size:0.78rem;">— leave blank to use market price</span></label>
+        <input type="number" id="exit_price" placeholder="Auto-fill from market data" min="2000" step="100" />
+      </div>
+
+      <div class="form-group">
+        <label>Contingency &amp; Overhead (%)</label>
+        <input type="number" id="contingency" value="10" min="0" max="30" step="1" />
+        <div class="input-hint">Standard: 8–15% of total cost</div>
+      </div>
+
+      <button class="btn-calc" onclick="calculate()">Calculate Deal Margin →</button>
+    </div>
+
+    <!-- RESULTS PANEL -->
+    <div id="results-panel">
+      <div class="results-placeholder">
+        <div class="placeholder-icon">📐</div>
+        <div class="placeholder-text">Select a locality and enter deal parameters<br>to see your margin analysis</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    <strong>Data source:</strong> Listing price aggregates from 99acres and MagicBricks — 50 Hyderabad micromarkets, updated regularly. SRO-verified transaction prices (actual registered sale consideration) are in development and will be added in a future release. This calculator is for feasibility estimation only — not a substitute for professional due diligence. <a href="index.html#waitlist">Join the waitlist</a> to get full platform access when we launch.
+  </div>
+
+  <div class="waitlist-cta">
+    <h3>Need deeper intelligence?</h3>
+    <p>Full platform includes absorption rates, project pipeline tracking, RERA compliance data, and comparative micromarket analysis.</p>
+    <a href="index.html#waitlist">Join the Early Access Waitlist →</a>
+  </div>
+</div>
+
+<script>
+// ── EMBEDDED PRICE DATA (50 Hyderabad micromarkets, Mar-2026) ──────────────
+const MARKETS = [
+  { slug:"jubilee-hills",     name:"Jubilee Hills",     psf:13950, segment:"PREMIUM",      zone:"West" },
+  { slug:"hi-tech-city",      name:"Hi-Tech City",      psf:12950, segment:"PREMIUM",      zone:"West" },
+  { slug:"gandipet",          name:"Gandipet",           psf:11700, segment:"PREMIUM",      zone:"West" },
+  { slug:"nanakramguda",      name:"Nanakramguda",       psf:11650, segment:"PREMIUM",      zone:"West" },
+  { slug:"whitefields",       name:"Whitefields",        psf:11650, segment:"PREMIUM",      zone:"East" },
+  { slug:"financial-district",name:"Financial District", psf:11600, segment:"PREMIUM",      zone:"West" },
+  { slug:"kokapet",           name:"Kokapet",            psf:11200, segment:"PREMIUM",      zone:"West" },
+  { slug:"nallagandla",       name:"Nallagandla",        psf:11150, segment:"PREMIUM",      zone:"West" },
+  { slug:"gachibowli",        name:"Gachibowli",         psf:11100, segment:"PREMIUM",      zone:"West" },
+  { slug:"moti-nagar",        name:"Moti Nagar",         psf:10700, segment:"PREMIUM",      zone:"West" },
+  { slug:"kphb",              name:"KPHB",               psf:10650, segment:"PREMIUM",      zone:"NW"   },
+  { slug:"narsingi",          name:"Narsingi",           psf:10550, segment:"PREMIUM",      zone:"West" },
+  { slug:"kondapur",          name:"Kondapur",           psf:10500, segment:"PREMIUM",      zone:"West" },
+  { slug:"gopanpally",        name:"Gopanpally",         psf:10300, segment:"PREMIUM",      zone:"West" },
+  { slug:"khajaguda",         name:"Khajaguda",          psf:9900,  segment:"PREMIUM",      zone:"West" },
+  { slug:"sanath-nagar",      name:"Sanath Nagar",       psf:9650,  segment:"PREMIUM",      zone:"West" },
+  { slug:"kothaguda",         name:"Kothaguda",          psf:9650,  segment:"PREMIUM",      zone:"West" },
+  { slug:"begumpet",          name:"Begumpet",           psf:9350,  segment:"MID-SEGMENT",  zone:"Central" },
+  { slug:"ameerpet",          name:"Ameerpet",           psf:9050,  segment:"MID-SEGMENT",  zone:"Central" },
+  { slug:"moosapet",          name:"Moosapet",           psf:9000,  segment:"MID-SEGMENT",  zone:"West" },
+  { slug:"serilingampally",   name:"Serilingampally",    psf:8750,  segment:"MID-SEGMENT",  zone:"West" },
+  { slug:"appa-junction",     name:"Appa Junction",      psf:8550,  segment:"MID-SEGMENT",  zone:"South" },
+  { slug:"tellapur",          name:"Tellapur",           psf:8500,  segment:"MID-SEGMENT",  zone:"West" },
+  { slug:"hafeezpet",         name:"Hafeezpet",          psf:8200,  segment:"MID-SEGMENT",  zone:"West" },
+  { slug:"neknampur",         name:"Neknampur",          psf:7950,  segment:"MID-SEGMENT",  zone:"South" },
+  { slug:"kukatpally",        name:"Kukatpally",         psf:7850,  segment:"MID-SEGMENT",  zone:"NW"   },
+  { slug:"manikonda",         name:"Manikonda",          psf:7800,  segment:"MID-SEGMENT",  zone:"South" },
+  { slug:"rajendra-nagar",    name:"Rajendra Nagar",     psf:7700,  segment:"MID-SEGMENT",  zone:"South" },
+  { slug:"uppal",             name:"Uppal",              psf:7600,  segment:"MID-SEGMENT",  zone:"East" },
+  { slug:"hyder-nagar",       name:"Hyder Nagar",        psf:7600,  segment:"MID-SEGMENT",  zone:"NW"   },
+  { slug:"miyapur",           name:"Miyapur",            psf:7550,  segment:"MID-SEGMENT",  zone:"West" },
+  { slug:"attapur",           name:"Attapur",            psf:7150,  segment:"MID-SEGMENT",  zone:"South" },
+  { slug:"gundlapochampalli", name:"Gundlapochampalli",  psf:7050,  segment:"MID-SEGMENT",  zone:"NW"   },
+  { slug:"bachupally",        name:"Bachupally",         psf:6900,  segment:"MID-SEGMENT",  zone:"NW"   },
+  { slug:"chandanagar",       name:"Chandanagar",        psf:6900,  segment:"MID-SEGMENT",  zone:"West" },
+  { slug:"kollur",            name:"Kollur",             psf:6500,  segment:"MID-SEGMENT",  zone:"West" },
+  { slug:"kompally",          name:"Kompally",           psf:6400,  segment:"MID-SEGMENT",  zone:"North" },
+  { slug:"nizampet",          name:"Nizampet",           psf:6000,  segment:"MID-SEGMENT",  zone:"NW"   },
+  { slug:"aminpur",           name:"Aminpur",            psf:6000,  segment:"MID-SEGMENT",  zone:"NW"   },
+  { slug:"pragathi-nagar",    name:"Pragathi Nagar",     psf:5850,  segment:"MID-SEGMENT",  zone:"NW"   },
+  { slug:"kothapet",          name:"Kothapet",           psf:5750,  segment:"MID-SEGMENT",  zone:"East" },
+  { slug:"patancheru",        name:"Patancheru",         psf:5400,  segment:"MID-SEGMENT",  zone:"West" },
+  { slug:"jeedimetla",        name:"Jeedimetla",         psf:5200,  segment:"MID-SEGMENT",  zone:"NW"   },
+  { slug:"patighanpur",       name:"Patighanpur",        psf:5400,  segment:"AFFORDABLE",   zone:"South" },
+  { slug:"tukkuguda",         name:"Tukkuguda",          psf:5350,  segment:"AFFORDABLE",   zone:"South" },
+  { slug:"dundigal",          name:"Dundigal",           psf:5100,  segment:"AFFORDABLE",   zone:"North" },
+  { slug:"pocharam",          name:"Pocharam",           psf:4950,  segment:"AFFORDABLE",   zone:"East" },
+  { slug:"boduppal",          name:"Boduppal",           psf:4800,  segment:"AFFORDABLE",   zone:"East" },
+  { slug:"mallampet",         name:"Mallampet",          psf:4750,  segment:"AFFORDABLE",   zone:"NW"   },
+  { slug:"suraram",           name:"Suraram",            psf:4600,  segment:"AFFORDABLE",   zone:"North" },
+];
+
+// ── POPULATE DROPDOWN ──────────────────────────────────────────────────────
+const select = document.getElementById('locality');
+MARKETS.forEach(m => {
+  const opt = document.createElement('option');
+  opt.value = m.slug;
+  opt.textContent = `${m.name} — ₹${m.psf.toLocaleString('en-IN')}/sqft (${m.segment})`;
+  select.appendChild(opt);
+});
+
+select.addEventListener('change', function() {
+  const m = MARKETS.find(x => x.slug === this.value);
+  const hint = document.getElementById('market-price-hint');
+  if (m) {
+    hint.textContent = `Market median: ₹${m.psf.toLocaleString('en-IN')}/sqft · ${m.zone} Hyderabad · ${m.segment}`;
+    hint.style.opacity = '1';
+  } else {
+    hint.textContent = '';
+  }
+});
+
+// ── FORMAT HELPERS ─────────────────────────────────────────────────────────
+function fmt(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); }
+function fmtCr(n) { return '₹' + n.toFixed(2) + ' Cr'; }
+function pct(n) { return n.toFixed(1) + '%'; }
+
+// ── CALCULATE ──────────────────────────────────────────────────────────────
+function calculate() {
+  const slug     = document.getElementById('locality').value;
+  const landPsyd = parseFloat(document.getElementById('land_price').value);
+  const areaSqyd = parseFloat(document.getElementById('land_area').value);
+  const fsi      = parseFloat(document.getElementById('fsi').value) || 3.0;
+  const constPsf = parseFloat(document.getElementById('construction_cost').value) || 3200;
+  const contPct  = (parseFloat(document.getElementById('contingency').value) || 10) / 100;
+
+  if (!slug || !landPsyd || !areaSqyd) {
+    alert('Please select a locality and enter land price + area.');
+    return;
+  }
+
+  const market   = MARKETS.find(x => x.slug === slug);
+  const exitPsfInput = parseFloat(document.getElementById('exit_price').value);
+  const exitPsf  = exitPsfInput || (market ? market.psf : null);
+
+  if (!exitPsf) {
+    alert('Exit price is required if locality is not in our database.');
+    return;
+  }
+
+  // ── Core math ──
+  const buildableSqft = areaSqyd * 9 * fsi;
+  const saleableSqft  = buildableSqft * 0.70;
+  const landCost      = landPsyd * areaSqyd;
+  const constCost     = constPsf * buildableSqft;
+  const contingency   = contPct * (landCost + constCost);
+  const totalCost     = landCost + constCost + contingency;
+  const grossRev      = exitPsf * saleableSqft;
+  const grossMargin   = grossRev - totalCost;
+  const marginPct     = (grossMargin / grossRev) * 100;
+  const breakevenPsf  = totalCost / saleableSqft;
+  const annReturn     = (grossMargin / totalCost) * (12 / 30) * 100;
+  const verdict       = marginPct > 20 ? 'go' : (marginPct > 12 ? 'thin' : 'nogo');
+
+  // ── Sensitivity (7 data points) ──
+  const steps = 7;
+  const lo = exitPsf * 0.80, hi = exitPsf * 1.20;
+  const step = (hi - lo) / (steps - 1);
+  const sensitivity = [];
+  for (let i = 0; i < steps; i++) {
+    const tp = Math.round(lo + step * i);
+    const rev = tp * saleableSqft;
+    const mg  = (rev - totalCost) / rev * 100;
+    sensitivity.push({
+      psf: tp,
+      margin: mg,
+      revCr: rev / 1e7,
+      verdict: mg > 20 ? 'go' : (mg > 12 ? 'thin' : 'nogo'),
+      active: Math.abs(tp - exitPsf) < step / 2,
+    });
+  }
+
+  // ── Market context ──
+  let contextText = '';
+  if (market) {
+    const diff = ((exitPsf - market.psf) / market.psf) * 100;
+    const diffStr = diff >= 0 ? `+${diff.toFixed(1)}%` : `${diff.toFixed(1)}%`;
+    contextText = `Your exit price of ${fmt(exitPsf)}/sqft is <strong>${diffStr} vs. ${market.name} market median</strong> (${fmt(market.psf)}/sqft). Land cost accounts for ${((landCost/totalCost)*100).toFixed(0)}% of total project cost. Break-even exit: ${fmt(breakevenPsf)}/sqft.`;
+  }
+
+  // ── Render ──
+  const verdictLabel = { go: '✅ Strong GO', thin: '⚠️ Thin Margin', nogo: '❌ No-Go' }[verdict];
+  const verdictDesc  = {
+    go:   'Healthy margin above 20%. Project is viable under current market conditions.',
+    thin: 'Margin between 12–20%. Viable but watch cost overruns. Sensitivity matters.',
+    nogo: 'Margin below 12%. Renegotiate land price or exit assumptions before proceeding.',
+  }[verdict];
+
+  const html = `
+    <div class="verdict-banner ${verdict}">
+      <div class="verdict-icon">${{go:'✅',thin:'⚠️',nogo:'❌'}[verdict]}</div>
+      <div>
+        <div class="verdict-label">Verdict</div>
+        <div class="verdict-text">${verdictLabel}</div>
+      </div>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-box">
+        <div class="metric-label">Gross Margin</div>
+        <div class="metric-value ${marginPct > 20 ? 'positive' : (marginPct > 12 ? 'warn' : 'neutral')}">${pct(marginPct)}</div>
+        <div class="metric-sub">${fmtCr(grossMargin / 1e7)} on ${fmtCr(grossRev / 1e7)} revenue</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Break-even Exit</div>
+        <div class="metric-value neutral">${fmt(breakevenPsf)}/sqft</div>
+        <div class="metric-sub">${pct(((exitPsf - breakevenPsf)/exitPsf)*100)} cushion to exit</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Total Project Cost</div>
+        <div class="metric-value neutral">${fmtCr(totalCost / 1e7)}</div>
+        <div class="metric-sub">Land ${pct(landCost/totalCost*100)} · Build ${pct(constCost/totalCost*100)}</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Annualised Return</div>
+        <div class="metric-value ${annReturn > 25 ? 'positive' : 'neutral'}">${pct(annReturn)}</div>
+        <div class="metric-sub">30-month project cycle</div>
+      </div>
+    </div>
+
+    <div class="metric-box" style="margin-bottom:16px;">
+      <div class="metric-label">Saleable Area</div>
+      <div style="display:flex;gap:24px;margin-top:4px;">
+        <div><div style="font-size:0.75rem;color:var(--muted)">Buildable</div><div style="font-weight:700">${Math.round(buildableSqft).toLocaleString('en-IN')} sqft</div></div>
+        <div><div style="font-size:0.75rem;color:var(--muted)">Saleable (70%)</div><div style="font-weight:700">${Math.round(saleableSqft).toLocaleString('en-IN')} sqft</div></div>
+        <div><div style="font-size:0.75rem;color:var(--muted)">Gross Revenue</div><div style="font-weight:700">${fmtCr(grossRev / 1e7)}</div></div>
+      </div>
+    </div>
+
+    ${contextText ? `<div class="context-box"><div class="context-label">Market Context</div>${contextText}</div>` : ''}
+
+    <div class="sens-label">Exit Price Sensitivity</div>
+    <table class="sens-table">
+      <thead>
+        <tr>
+          <th>Exit Price</th>
+          <th>Margin %</th>
+          <th>Revenue</th>
+          <th>Verdict</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${sensitivity.map(r => `
+          <tr class="${r.active ? 'row-active' : ''}">
+            <td>${fmt(r.psf)}/sqft${r.active ? ' ◀' : ''}</td>
+            <td style="color:${r.verdict==='go'?'var(--green)':(r.verdict==='thin'?'var(--yellow)':'var(--red)')};font-weight:700">${pct(r.margin)}</td>
+            <td>${fmtCr(r.revCr)}</td>
+            <td><span class="badge badge-${r.verdict}">${r.verdict==='go'?'GO':(r.verdict==='thin'?'THIN':'NO-GO')}</span></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+
+  document.getElementById('results-panel').innerHTML = `<div class="card">${html}</div>`;
+}
+</script>
+</body>
+</html>
