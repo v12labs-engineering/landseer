@@ -438,9 +438,11 @@
     </div>
 
     <div class="cta-row">
-      <h3>Want verified transaction data for this micromarket?</h3>
-      <p>This calculator uses listing prices. LandLens Sprint 2 adds actual registered sale values from Telangana sub-registrar records — the price developers actually paid, not what was listed.</p>
-      <a class="btn-cta" id="whatsapp-cta" href="#" target="_blank">Join early access →</a>
+      <a class="btn-cta" id="primary-cta" href="#" target="_blank" style="display:none">Share this analysis →</a>
+      <p id="primary-cta-sub" style="color:var(--muted);font-size:0.85rem;margin:8px 0 20px"></p>
+      <h3 style="margin-bottom:8px">Get alerted when prices shift in this micromarket</h3>
+      <p style="margin-bottom:12px">This calculator uses listing prices. LandLens Sprint 2 adds actual registered sale values from Telangana sub-registrar records — the price developers actually paid, not what was listed.</p>
+      <a class="btn-cta" id="whatsapp-cta" href="#" target="_blank" style="background:var(--surface2);color:var(--text);border:1px solid var(--border)">Join early access →</a>
     </div>
   </div>
 
@@ -558,26 +560,71 @@ function calculate() {
   const vsP10     = ((exitPrice - market.p10) / market.p10) * 100;
   const vsP90     = ((exitPrice - market.p90) / market.p90) * 100;
 
-  // ─── Verdict ────────────────────────────────────────────────────────────
-  let verdict, verdictClass, icon, verdictSub;
-  if (grossMarginPct >= 25) {
-    verdict = "Strong Viable"; verdictClass = "strong_viable"; icon = "✅";
+  // ─── Verdict ─────────────────────────────────────────────────────────────
+  // Verdict phrases aligned to Banner's microcopy spec
+  let verdict, verdictPhrase, verdictClass, icon, verdictSub;
+  if (grossMarginPct > 25) {
+    verdict = "Strong deal"; verdictPhrase = "Strong deal"; verdictClass = "strong_viable"; icon = "✅";
     verdictSub = "Solid margins. This deal works at current market pricing.";
-  } else if (grossMarginPct >= 15) {
-    verdict = "Viable"; verdictClass = "viable"; icon = "✓";
-    verdictSub = "Acceptable margins. Watch construction cost escalation.";
-  } else if (grossMarginPct >= 5) {
-    verdict = "Marginal"; verdictClass = "marginal"; icon = "⚠️";
+  } else if (grossMarginPct >= 18) {
+    verdict = "Healthy margin"; verdictPhrase = "Healthy margin"; verdictClass = "viable"; icon = "✓";
+    verdictSub = "Healthy margin for this corridor. Watch construction cost escalation.";
+  } else if (grossMarginPct >= 12) {
+    verdict = "Viable — thin on buffer"; verdictPhrase = "Viable — thin on buffer"; verdictClass = "viable"; icon = "✓";
+    verdictSub = "Acceptable margins, but limited downside cushion.";
+  } else if (grossMarginPct >= 8) {
+    verdict = "Tight"; verdictPhrase = "Tight. Stress-test your assumptions."; verdictClass = "marginal"; icon = "⚠️";
     verdictSub = "Thin margins. Negotiate land price or push exit price.";
-  } else {
-    verdict = "Not Viable"; verdictClass = "not_viable"; icon = "✗";
+  } else if (grossMarginPct >= 3) {
+    verdict = "Marginal"; verdictPhrase = "Marginal. Consider renegotiating land cost."; verdictClass = "marginal"; icon = "⚠️";
+    verdictSub = "Deal barely works. Land price negotiation is the lever.";
+  } else if (grossMarginPct >= 0) {
+    verdict = "Not viable"; verdictPhrase = "Not viable at current land price."; verdictClass = "not_viable"; icon = "✗";
     verdictSub = "Deal doesn't work at current pricing assumptions.";
+  } else {
+    verdict = "Underwater"; verdictPhrase = "Deal is underwater at current inputs."; verdictClass = "not_viable"; icon = "✗";
+    verdictSub = "Revenue doesn't cover costs. Rework inputs significantly.";
   }
 
-  // ─── Insight text ───────────────────────────────────────────────────────
-  let insightText = `Your exit price of <strong>${fmtPsf(exitPrice)}</strong> is `;
+  // ─── Insight text (Banner microcopy spec) ────────────────────────────────
+  const marketContextMap = {
+    kokapet:            `${verdictPhrase} for Kokapet. Market median: ₹11,200/sqft. Premium corridor — luxury positioning required.`,
+    gachibowli:         `${verdictPhrase} for Gachibowli. Market median: ₹11,100/sqft. IT demand stable, high absorption.`,
+    hitech_city:        `${verdictPhrase} for Hi-Tech City. Market median: ₹12,950/sqft. Highest-velocity micro-market in Hyderabad.`,
+    narsingi:           `${verdictPhrase} for Narsingi. Market median: ₹9,800/sqft. Fast-growing — mid-segment demand strong.`,
+    kompally:           `${verdictPhrase} for Kompally. Market median: ₹6,400/sqft. Northern corridor — affordable segment, good absorption.`,
+    bachupally:         `${verdictPhrase} for Bachupally. Market median: ₹6,900/sqft. Mid-segment, active developer pipeline.`,
+    kondapur:           `${verdictPhrase} for Kondapur. Market median: ₹9,500/sqft. Mature IT micro-market, limited new land.`,
+    manikonda:          `${verdictPhrase} for Manikonda. Market median: ₹9,200/sqft. Western corridor growth, solid mid-segment.`,
+    financial_district: `${verdictPhrase} for Financial District. Market median: ₹11,600/sqft. Premium — institutional buyer base.`,
+    miyapur:            `${verdictPhrase} for Miyapur. Market median: ₹7,400/sqft. Metro connectivity driving demand.`,
+    tellapur:           `${verdictPhrase} for Tellapur. Market median: ₹8,500/sqft. Emerging — airport corridor tailwind.`,
+    rajendranagar:      `${verdictPhrase} for Rajendranagar. Market median: ₹7,200/sqft. Outer Ring Road access, growing inventory.`,
+    chandanagar:        `${verdictPhrase} for Chandanagar. Market median: ₹7,100/sqft. Affordable — first-time buyer segment.`,
+    patancheru:         `${verdictPhrase} for Patancheru. Market median: ₹5,200/sqft. Industrial proximity, plotted development hub.`,
+    shamshabad:         `${verdictPhrase} for Shamshabad. Market median: ₹5,600/sqft. Airport zone — warehousing + residential mix.`,
+    yadagirigutta:      `${verdictPhrase} for Yadagirigutta. Market median: ₹4,100/sqft. Pilgrimage corridor, plotted demand.`,
+    shadnagar:          `${verdictPhrase} for Shadnagar. Market median: ₹4,200/sqft. Township corridor, large-format projects.`,
+    adibatla:           `${verdictPhrase} for Adibatla. Market median: ₹4,500/sqft. Aerospace SEZ proximity, emerging.`,
+    yacharam:           `${verdictPhrase} for Yacharam. Market median: ₹4,800/sqft. Township corridor, large-format projects.`,
+  };
+  const marketContext = marketContextMap[slug] ||
+    `${verdictPhrase} for ${market.name}. Market median: ${fmtPsf(market.median)}.`;
+
+  // Secondary line for tight/marginal deals
+  let secondaryContext = "";
+  if (grossMarginPct < 12 && grossMarginPct > 0) {
+    const landCostReduced = landCost * 0.9;
+    const totalLandCostR  = landArea * landCostReduced;
+    const totalCostR      = totalLandCostR + totalConstCost + (totalLandCostR + totalConstCost) * ovhPct;
+    const marginR         = ((totalRevenue - totalCostR) / totalRevenue) * 100;
+    const breakEvenR      = totalCostR / saleableSqft;
+    secondaryContext = `<br><span style="color:var(--muted);font-size:0.85rem">10% land cost reduction improves margin to <strong>${marginR.toFixed(1)}%</strong>. Break-even shifts to ${fmtPsf(breakEvenR)}.</span>`;
+  }
+
+  let insightText = `<strong>${marketContext}</strong>${secondaryContext}<br><br>Your exit price <strong>${fmtPsf(exitPrice)}</strong> is `;
   if (Math.abs(vsMedian) < 1) {
-    insightText += `right at the <strong>${market.name} median</strong> (${fmtPsf(market.median)}).`;
+    insightText += `right at the ${market.name} median (${fmtPsf(market.median)}).`;
   } else if (vsMedian > 0) {
     insightText += `<strong>${vsMedian.toFixed(1)}% above</strong> the ${market.name} median (${fmtPsf(market.median)}).`;
     if (exitPrice > market.p90) {
@@ -636,10 +683,26 @@ function calculate() {
   document.getElementById("insight-text").innerHTML   = insightText;
   document.getElementById("sensitivity-body").innerHTML = tbody;
 
-  // WhatsApp CTA
-  const msg = `Hi, I used the LandLens feasibility calculator for ${market.name} and wanted to learn more about the transaction data layer.`;
-  document.getElementById("whatsapp-cta").href =
-    `https://wa.me/919999999999?text=${encodeURIComponent(msg)}`;
+  // ─── CTAs (Banner spec) ─────────────────────────────────────────────────
+  const shareMsg = `I ran a feasibility check on LandLens for ${market.name}:\n\nLand: ₹${Math.round(landCost).toLocaleString("en-IN")}/sqyd | FSI: ${fsi} | Exit: ₹${Math.round(exitPrice).toLocaleString("en-IN")}/sqft\nMargin: ${grossMarginPct.toFixed(1)}% | Break-even: ₹${Math.round(breakEven).toLocaleString("en-IN")}/sqft\n\nCheck your deal: https://v12labs-engineering.github.io/landseer/feasibility.html`;
+  const earlyAccessMsg = `Hi, I used the LandLens feasibility calculator for ${market.name} and wanted to learn more about the transaction data layer.`;
+
+  // Primary CTA: share (viable) or adjust (marginal/not viable)
+  const primaryCta = document.getElementById("primary-cta");
+  const secondaryCta = document.getElementById("whatsapp-cta");
+  if (grossMarginPct >= 12) {
+    primaryCta.textContent = "Share this analysis →";
+    primaryCta.href = `https://wa.me/?text=${encodeURIComponent(shareMsg)}`;
+    primaryCta.style.display = "inline-block";
+    document.getElementById("primary-cta-sub").textContent = "Send to your partner / investor / land seller.";
+  } else {
+    primaryCta.textContent = "Adjust your inputs ↑";
+    primaryCta.href = "#";
+    primaryCta.onclick = (e) => { e.preventDefault(); document.getElementById("market").scrollIntoView({ behavior: "smooth" }); };
+    primaryCta.style.display = "inline-block";
+    document.getElementById("primary-cta-sub").textContent = "See what land price makes this deal work.";
+  }
+  secondaryCta.href = `https://wa.me/919999999999?text=${encodeURIComponent(earlyAccessMsg)}`;
 
   const panel = document.getElementById("results-panel");
   panel.classList.add("visible");
