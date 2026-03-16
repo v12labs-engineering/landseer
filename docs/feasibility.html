@@ -454,6 +454,24 @@
 
 <script>
 // ─── MARKET DATA ────────────────────────────────────────────────────────────
+// IGR Guidance Values — Telangana Registration Dept (₹/sqft, scraped 2026-03-16)
+// guidance_floor = government-certified minimum registration value
+// listing_premium_pct = how much above govt floor listings trade
+const IGR_GUIDANCE = {
+  kokapet:    { floor: 2644, premium_pct: 210, updated: "2022-02" },
+  manikonda:  { floor: 2556, premium_pct: 193, updated: "2022-02" },
+  narsingi:   { floor: 2556, premium_pct: 166, updated: "2022-02" },
+  gachibowli: { floor: 4989, premium_pct:  90, updated: "2022-02" },
+  madhapur:   { floor: 4989, premium_pct:  84, updated: "2022-02" },
+  kondapur:   { floor: 4989, premium_pct:  76, updated: "2022-02" },
+  miyapur:    { floor: 4989, premium_pct:  24, updated: "2022-02" },
+  bachupally: { floor: 1800, premium_pct: 283, updated: "2022-02" },
+  kompally:   { floor: 2256, premium_pct: 157, updated: "2022-02" },
+  medchal:    { floor: 1133, premium_pct: 324, updated: "2022-02" },
+  gandipet:   { floor: 1256, premium_pct: 362, updated: "2022-02" },
+  uppal:      { floor: 2256, premium_pct: 144, updated: "2022-02" },
+};
+
 const MARKETS = {
   jubilee_hills:      { name:"Jubilee Hills",       median:13950, p10:11800, p90:17200, tier:"Premium",     zone:"West" },
   hitech_city:        { name:"Hi-Tech City",         median:12950, p10:10800, p90:15600, tier:"Premium",     zone:"West" },
@@ -622,7 +640,16 @@ function calculate() {
     secondaryContext = `<br><span style="color:var(--muted);font-size:0.85rem">10% land cost reduction improves margin to <strong>${marginR.toFixed(1)}%</strong>. Break-even shifts to ${fmtPsf(breakEvenR)}.</span>`;
   }
 
-  let insightText = `<strong>${marketContext}</strong>${secondaryContext}<br><br>Your exit price <strong>${fmtPsf(exitPrice)}</strong> is `;
+  // IGR guidance floor line
+  let igrLine = "";
+  const igr = IGR_GUIDANCE[slug];
+  if (igr) {
+    const landCostPerSqft = landCost / 9; // convert ₹/sqyd to ₹/sqft
+    const floorRatio = (landCostPerSqft / igr.floor).toFixed(1);
+    igrLine = `<br><span style="color:var(--muted);font-size:0.85rem">🏛️ <strong>Govt guidance floor: ₹${igr.floor.toLocaleString("en-IN")}/sqft</strong> — listings trade at +${igr.premium_pct}% above govt floor. Your land cost is ${floorRatio}x the government floor. <span style="color:#94a3b8">(Source: Telangana Registration Dept)</span></span>`;
+  }
+
+  let insightText = `<strong>${marketContext}</strong>${secondaryContext}${igrLine}<br><br>Your exit price <strong>${fmtPsf(exitPrice)}</strong> is `;
   if (Math.abs(vsMedian) < 1) {
     insightText += `right at the ${market.name} median (${fmtPsf(market.median)}).`;
   } else if (vsMedian > 0) {
